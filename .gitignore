@@ -9,6 +9,7 @@ lerna-debug.log*
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
+*.csv
 # Runtime data
 pids
 *.pid
@@ -42,7 +43,7 @@ node_modules/
 jspm_packages/
 data_gkv/
 Models_File/
-PJ_Sensor/
+Models_File_PJ/
 
 # TypeScript v1 declaration files
 typings/
