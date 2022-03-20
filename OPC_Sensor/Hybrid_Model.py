@@ -29,7 +29,8 @@ def rmse(y_true, y_pred):
 
 class HybridModel:
     def __init__(self,*args,**kwargs):
-        self.r2_score_array=np.empty((8,7),dtype='float32')
+        self.r2_score_array=np.empty((6,7),dtype='float32')
+        print("Utkarsh")
     
     def load_lstm(self):
         from keras.models import model_from_json
@@ -71,6 +72,7 @@ class HybridModel:
     
     
     def load_models(self):
+        print("Utkarsh")
         print("Loading XGboost Model.........")
         self.xgboost_model = pickle.load(open("Xgboost/xgboost.sav", 'rb'))
         print("Completed............100%")
@@ -111,38 +113,60 @@ class HybridModel:
     
     def calculate_r2_separately(self,actual,predicted,idx):
         for i in range(0,7):
-            self.r2_score_array[idx][i]=self.calculate_r2_score(actual[i],predicted[i])
+            self.r2_score_array[idx][i]=self.calculate_r2_score(actual[:,i],predicted[:,i])
     
-    
-    def fit(self,x_test,y_test):
-        self.load_models()
-        
-        self.xgboost_predicted_values=self.xgboost_model.predict(x_test)
-        self.randomforest_predicted_values=self.randomforest_model.predict(x_test)
-        self.knn_predicted_values=self.knn_model.predict(x_test)
-        self.lasso_predicted_values=self.lasso_model.predict(x_test)
-        self.linear_predicted_values=self.linear_model.predict(x_test)
-        self.lstm_predicted_values=self.lstm_model.predict(x_test)
-        self.gru_predicted_values=self.gru_model.predict(x_test)
-        self.cnn_predicted_values=self.cnn_model.predict(x_test)
-        
+    def fit_xgboost(self,x_test):
+        return self.xgboost_model.predict(x_test)
+
+    def fit_randomforest(self,x_test):
+        return self.randomforest_model.predict(x_test)
+
+    def fit_knn(self,x_test): 
+        return self.knn_model.predict(x_test)
+
+    def fit_lasso(self,x_test):
+        return self.lasso_model.predict(x_test)
+               
+    def fit_linear(self,x_test):
+        return self.linear_model.predict(x_test)
+
+    def fit_lstm(self,x_test):
+        return self.lstm_model.predict(x_test)
+
+    def fit_cnn(self,x_test):
+        return self.cnn_model.predict(x_test)
+
+    def fit_gru(self,x_test):
+        return  self.gru_model.predict(x_test)
+
+    def fit_machine_learning_model(self,x_test,y_test):
+        self.xgboost_predicted_values=self.fit_xgboost(x_test)
+        self.randomforest_predicted_values=self.fit_randomforest(x_test)
+        self.knn_predicted_values=self.fit_knn(x_test)
+        self.linear_predicted_values=self.fit_linear(x_test)
+        self.lasso_predicted_values=self.fit_lasso(x_test)
         self.calculate_r2_separately(y_test,self.xgboost_predicted_values,0)
         self.calculate_r2_separately(y_test,self.randomforest_predicted_values,1)
         self.calculate_r2_separately(y_test,self.knn_predicted_values,2)
-        self.calculate_r2_separately(y_test,self.lasso_predicted_values,3)
-        self.calculate_r2_separately(y_test,self.linear_predicted_values,4)
-        self.calculate_r2_separately(y_test,self.lstm_predicted_values,5)
-        self.calculate_r2_separately(y_test,self.gru_predicted_values,6)
-        self.calculate_r2_separately(y_test,self.cnn_predicted_values,7)
+        # self.calculate_r2_separately(y_test,self.lasso_predicted_values,)
+        # self.calculate_r2_separately(y_test,self.linear_predicted_values,3)
         
-        return "Done Fitting"
+    def fit_neural_network_model(self,x_test,y_test):
+        self.lstm_predicted_values=self.fit_lstm(x_test)
+        self.gru_predicted_values=self.fit_gru(x_test)
+        self.cnn_predicted_values=self.fit_cnn(x_test)
+        y_test=y_test[:,0]
+        self.cnn_predicted_values=self.cnn_predicted_values[:,0]
+        self.calculate_r2_separately(y_test,self.lstm_predicted_values,3)
+        self.calculate_r2_separately(y_test,self.gru_predicted_values,4)
+        self.calculate_r2_separately(y_test,self.cnn_predicted_values,5)
     
     def find_max_r2(self,col):
         
         mx=self.r2_score_array[0,col]
         idx=0
         
-        for i in range(0,8):
+        for i in range(0,6):
             if self.r2_score_array[i,col]>mx:
                 mx=self.r2_score_array[i,col]
                 idx=i
@@ -150,25 +174,21 @@ class HybridModel:
         return idx
     
     
-    def predict(self,x_test,y_test):
-        self.final_predicted_value=np.array(y_test.shape,dtype='float')
-        for i in range(1,7):
+    def predict(self):
+        self.final_predicted_value=np.empty((432571, 7),dtype='float')
+        for i in range(0,7):
             idx=self.find_max_r2(i)
             if idx==0:
-                self.final_predicted_value[:idx]=self.xgboost_predicted_values[:idx]
+                self.final_predicted_value[:,i]=self.xgboost_predicted_values[:,i]
             elif idx==1:
-                self.final_predicted_value[:idx]=self.randomforest_predicted_values[:idx]
+                self.final_predicted_value[:,i]=self.randomforest_predicted_values[:,i]
             elif idx==2:
-                self.final_predicted_value[:idx]=self.knn_predicted_values[:idx]
+                self.final_predicted_value[:,i]=self.knn_predicted_values[:,i]
             elif idx==3:
-                self.final_predicted_value[:idx]=self.lasso_predicted_values[:idx]
+                self.final_predicted_value[:,i]=self.lstm_predicted_values[:,i]
             elif idx==4:
-                self.final_predicted_value[:idx]=self.linear_predicted_values[:idx]
+                self.final_predicted_value[:,i]=self.gru_predicted_values[:,i]
             elif idx==5:
-                self.final_predicted_value[:idx]=self.lstm_predicted_values[:idx]
-            elif idx==6:
-                self.final_predicted_value[:idx]=self.gru_predicted_values[:idx]
-            elif idx==7:
-                self.final_predicted_value[:idx]=self.cnn_predicted_values[:idx]
+                self.final_predicted_value[:,i]=self.cnn_predicted_values[:,i]
                 
         return self.final_predicted_value         
