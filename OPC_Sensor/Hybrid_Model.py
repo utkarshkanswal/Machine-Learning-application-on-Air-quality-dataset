@@ -6,7 +6,7 @@ from csv import writer
 import math
 import cmath
 import pickle
-
+from sklearn import metrics
 import tensorflow as tf
 from tensorflow import keras
 from keras.models import Model,Sequential,load_model
@@ -30,6 +30,10 @@ def rmse(y_true, y_pred):
 class HybridModel:
     def __init__(self,*args,**kwargs):
         self.r2_score_array=np.empty((6,7),dtype='float32')
+        self.mse_array=np.empty((6,7),dtype='float32')
+        self.rmse_array=np.empty((6,7),dtype='float32')
+        self.mae_array=np.empty((6,7),dtype='float32')
+        self.index_array=np.empty((6,7),dtype='float32')
         print("Utkarsh")
     
     def load_lstm(self):
@@ -72,7 +76,6 @@ class HybridModel:
     
     
     def load_models(self):
-        print("Utkarsh")
         print("Loading XGboost Model.........")
         self.xgboost_model = pickle.load(open("Xgboost/xgboost.sav", 'rb'))
         print("Completed............100%")
@@ -114,6 +117,18 @@ class HybridModel:
     def calculate_r2_separately(self,actual,predicted,idx):
         for i in range(0,7):
             self.r2_score_array[idx][i]=self.calculate_r2_score(actual[:,i],predicted[:,i])
+
+    def calculate_mse_separately(self,actual,predicted,idx):
+        for i in range(0,7):
+            self.mse_array[idx][i]=metrics.mean_squared_error(actual[:,i],predicted[:,i])      
+
+    def calculate_mae_separately(self,actual,predicted,idx):
+        for i in range(0,7):
+            self.mae_array[idx][i]=metrics.mean_absolute_error(actual[:,i],predicted[:,i])
+
+    def calculate_rmse_separately(self,actual,predicted,idx):
+        for i in range(0,7):
+            self.rmse_array[idx][i]=metrics.mean_squared_error(actual[:,i],predicted[:,i])                  
     
     def fit_xgboost(self,x_test):
         return self.xgboost_model.predict(x_test)
@@ -148,8 +163,20 @@ class HybridModel:
         self.calculate_r2_separately(y_test,self.xgboost_predicted_values,0)
         self.calculate_r2_separately(y_test,self.randomforest_predicted_values,1)
         self.calculate_r2_separately(y_test,self.knn_predicted_values,2)
-        # self.calculate_r2_separately(y_test,self.lasso_predicted_values,)
-        # self.calculate_r2_separately(y_test,self.linear_predicted_values,3)
+
+
+        self.calculate_mse_separately(y_test,self.xgboost_predicted_values,0)
+        self.calculate_mse_separately(y_test,self.randomforest_predicted_values,1)
+        self.calculate_mse_separately(y_test,self.knn_predicted_values,2)
+
+        self.calculate_rmse_separately(y_test,self.xgboost_predicted_values,0)
+        self.calculate_rmse_separately(y_test,self.randomforest_predicted_values,1)
+        self.calculate_rmse_separately(y_test,self.knn_predicted_values,2)
+
+        self.calculate_mae_separately(y_test,self.xgboost_predicted_values,0)
+        self.calculate_mae_separately(y_test,self.randomforest_predicted_values,1)
+        self.calculate_mae_separately(y_test,self.knn_predicted_values,2)
+        
         
     def fit_neural_network_model(self,x_test,y_test):
         self.lstm_predicted_values=self.fit_lstm(x_test)
@@ -160,6 +187,18 @@ class HybridModel:
         self.calculate_r2_separately(y_test,self.lstm_predicted_values,3)
         self.calculate_r2_separately(y_test,self.gru_predicted_values,4)
         self.calculate_r2_separately(y_test,self.cnn_predicted_values,5)
+
+        self.calculate_mse_separately(y_test,self.lstm_predicted_values,3)
+        self.calculate_mse_separately(y_test,self.gru_predicted_values,4)
+        self.calculate_mse_separately(y_test,self.cnn_predicted_values,5)
+
+        self.calculate_rmse_separately(y_test,self.lstm_predicted_values,3)
+        self.calculate_rmse_separately(y_test,self.gru_predicted_values,4)
+        self.calculate_rmse_separately(y_test,self.cnn_predicted_values,5)
+
+        self.calculate_mae_separately(y_test,self.lstm_predicted_values,3)
+        self.calculate_mae_separately(y_test,self.gru_predicted_values,4)
+        self.calculate_mae_separately(y_test,self.cnn_predicted_values,5)
     
     def find_max_r2(self,col):
         
@@ -173,11 +212,33 @@ class HybridModel:
         
         return idx
     
+    def find_index_value(self,r2_score,mse,mae,rmse):
+        mx=((70*r2_score)-(10*mse+10*mae+10*rmse))/4
+        for i in range(1,101):
+            for j in range(1,101):
+                for k in range(1,101):
+                    for l in range(1,101):
+                        if i+j+k+l==100:
+                            temp_mx=((i*r2_score)-(j*mse+k*mae+l*rmse))/4
+                            mx=max(temp_mx,mx)
+        return mx
     
+    def find_max_index_value(self,col):
+        mx=self.find_index_value(self.r2_score_array[0,col],self.mse_array[0,col],self.mae_array[0,col],self.rmse_array[0,col])
+        self.index_array[0,col]=mx
+        idx=0
+        for i in range(0,6):
+            temp_index_value=self.find_index_value(self.r2_score_array[i,col],self.mse_array[i,col],self.mae_array[i,col],self.rmse_array[i,col])
+            self.index_array[0,col]=temp_index_value
+            if temp_index_value>mx:
+                idx=i
+                mx=temp_index_value
+        return idx        
+
     def predict(self):
         self.final_predicted_value=np.empty((432571, 7),dtype='float')
         for i in range(0,7):
-            idx=self.find_max_r2(i)
+            idx=self.find_max_index_value(i)
             if idx==0:
                 self.final_predicted_value[:,i]=self.xgboost_predicted_values[:,i]
             elif idx==1:
