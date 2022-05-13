@@ -234,7 +234,7 @@ class HybridModel:
                 idx=i
                 mx=temp_index_value
         return idx        
-
+         
     def predict(self):
         self.final_predicted_value=np.empty((432571, 7),dtype='float')
         for i in range(0,7):
